@@ -1,4 +1,4 @@
-const CACHE_NAME = 'device-remote-v30';
+const CACHE_NAME = 'device-remote-v39';
 const ASSETS = [
   '/',
   '/index.html',
@@ -14,6 +14,8 @@ const ASSETS = [
   'https://img.icons8.com/ios-filled/50/ffffff/pause.png',
   'https://img.icons8.com/ios-filled/50/ffffff/previous.png',
   'https://img.icons8.com/ios-filled/50/ffffff/next.png',
+  'https://img.icons8.com/ios-filled/50/ffffff/speaker.png',
+  'https://img.icons8.com/ios-filled/50/ffffff/mute.png',
   '/vu_0.webp', '/vu_1.webp', '/vu_2.webp', '/vu_3.webp', '/vu_4.webp',
   '/vu_5.webp', '/vu_6.webp', '/vu_7.webp', '/vu_8.webp', '/vu_9.webp',
   '/vu_10.webp', '/vu_11.webp', '/vu_12.webp', '/vu_13.webp', '/vu_14.webp'

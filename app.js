@@ -19,17 +19,63 @@ function decodeCustom(encoded) {
 }
 
 function decodeWiiMText(text) {
-    if (!text || text === "unknown" || text === "556E6B6E6F776E" || text === "Unkown") return "";
+    if (!text || text === "unknown" || text === "556E6B6E6F776E" || text === "Unkown" || text === "0") return "";
+    
+    let decoded = text;
+    // If it looks like hex, try to decode it
     if (/^[0-9A-Fa-f]+$/.test(text) && text.length % 2 === 0) {
         try {
             const bytes = new Uint8Array(text.length / 2);
             for (let i = 0; i < text.length; i += 2) {
                 bytes[i/2] = parseInt(text.substr(i, 2), 16);
             }
-            return new TextDecoder("utf-8").decode(bytes);
-        } catch (e) { return text; }
+            decoded = new TextDecoder("utf-8").decode(bytes);
+        } catch (e) { 
+            decoded = text; 
+        }
     }
-    return text;
+    
+    // Unescape HTML/XML entities if present
+    if (typeof decoded === 'string' && decoded.includes('&')) {
+        try {
+            const doc = new DOMParser().parseFromString(decoded, 'text/html');
+            return doc.documentElement.textContent;
+        } catch (e) {
+            return decoded;
+        }
+    }
+    
+    return decoded;
+}
+
+function parseWiiMMetaData(metaDataHex) {
+    console.log("XML Parser: Decoding MetaData hex...");
+    const decoded = decodeWiiMText(metaDataHex);
+    if (!decoded || (typeof decoded === 'string' && !decoded.includes('<'))) {
+        console.log("XML Parser: No valid XML found in MetaData. Decoded was: " + (decoded ? decoded.substring(0, 50) + "..." : "empty"));
+        return {};
+    }
+    
+    console.log("XML Parser: Decoded XML (first 100 chars):", decoded.substring(0, 100));
+    const results = {};
+    const getMatch = (tag) => {
+        // Handle optional namespace prefix and attributes
+        const re = new RegExp(`<(?:[^>]*:)?${tag}[^>]*>(.*?)<\\/`, 'i');
+        const m = decoded.match(re);
+        if (m) console.log(`XML Parser: Found ${tag}: ${m[1].substring(0, 30)}${m[1].length > 30 ? '...' : ''}`);
+        return m ? m[1] : null;
+    };
+
+    try {
+        results.title = getMatch('title');
+        results.artist = getMatch('artist');
+        results.album = getMatch('album');
+        results.artUrl = getMatch('albumArtURI') || getMatch('logo') || getMatch('icon') || getMatch('albumArtUrl');
+        if (results.artUrl) console.log("XML Parser: Successfully extracted Art URL.");
+    } catch (e) {
+        console.warn("XML Parser: Error parsing WiiM MetaData:", e);
+    }
+    return results;
 }
 
 // API Fetching
@@ -87,13 +133,19 @@ async function fetchWiiM(path) {
     try {
         const response = await fetch(url, { signal: controller.signal });
         clearTimeout(timeoutId);
+        const text = await response.text();
+        
         if (!response.ok) {
-            const errBody = await response.text();
-            console.warn(`WiiM Error: ${response.status} ${response.statusText} - ${errBody}`);
+            console.warn(`WiiM Error: ${response.status} ${response.statusText} - ${text}`);
             return null;
         }
-        const data = await response.json();
-        return data;
+
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.log(`WiiM Response is not JSON: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
+            return { raw: text };
+        }
     } catch (e) { 
         clearTimeout(timeoutId);
         console.debug(`WiiM Fetch Failed: ${targetUrl}`, e);

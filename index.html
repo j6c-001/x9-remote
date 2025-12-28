@@ -23,20 +23,20 @@
                 <span>•</span>
                 <span id="audioFormat">--</span>
                 <span>•</span>
-                <span style="font-size: 10px; color: var(--secondary-text);">v1.2.9</span>
+                <span style="font-size: 10px; color: var(--secondary-text);">v1.3.8</span>
             </div>
         </header>
 
         <div id="mainView" class="view-container">
             <!-- WiiM Now Playing Section -->
             <div id="wiimGroup" class="control-group" style="display: none;">
-                <div class="label">Now Playing</div>
                 <div style="text-align: center; margin-bottom: 20px; overflow: hidden;">
                     <div id="wiimArtContainer" style="margin-bottom: 15px; display: none;">
                         <img id="wiimAlbumArt" src="" style="width: 160px; height: 160px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.5); background-color: #2c2c2e;">
                     </div>
                     <div id="wiimTitle" style="font-size: 18px; font-weight: 700; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Not Playing</div>
                     <div id="wiimArtist" style="font-size: 14px; color: var(--secondary-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</div>
+                    <div id="wiimAlbum" style="font-size: 12px; color: var(--secondary-text); opacity: 0.7; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
                 </div>
                 <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
                     <button class="transport-btn" onclick="sendWiimCmd('setPlayerCmd:prev')">
@@ -52,7 +52,6 @@
             </div>
 
             <div class="control-group">
-                <div class="label">Input Source</div>
                 <div class="button-grid">
                     <button id="btnInput5" onclick="setSetting('input', 5)">
                         <div class="btn-content">
@@ -70,7 +69,6 @@
             </div>
 
             <div class="control-group">
-                <div class="label">Audio Control</div>
                 
                 <div class="circular-container" id="volCircularContainer">
                     <svg class="circular-slider" viewBox="0 0 220 220">
@@ -84,10 +82,11 @@
                     </div>
                 </div>
                 
-                <button id="btnMute" style="width: 100%; margin-top: 10px;" onclick="muteVolume()">Mute</button>
+                <button id="btnMute" class="mute-btn" onclick="muteVolume()">
+                    <img id="muteIcon" src="https://img.icons8.com/ios-filled/50/ffffff/speaker.png">
+                </button>
 
                 <div id="vuGroup" style="margin-top: 30px; border-top: 1px solid #2c2c2e; padding-top: 20px;">
-                    <div style="text-align: center; font-size: 10px; color: var(--secondary-text); text-transform: uppercase; margin-bottom: 15px;">VU Meter Selection</div>
                     <div class="carousel-container">
                         <button class="carousel-nav" onclick="moveCarousel(-1)">❮</button>
                         <div id="vuCarousel" class="carousel">
@@ -205,35 +204,86 @@
             
             isRefreshingWiiM = true;
             try {
+                console.log("Step 1: Polling WiiM player status (getPlayerStatus)...");
                 const data = await fetchWiiM('/httpapi.asp?command=getPlayerStatus');
+
                 if (data) {
-                    const title = data.Title || data.title || data.totitle || "";
-                    const artist = data.Artist || data.artist || "";
-                    const artUrl = data.logo || data.albumart_url || data.AlbumArtUrl || data.album_url || data.cover || data.AlbumArt64 || "";
+                    console.debug("WiiM Response:", data);
+                    
+                    // Extract metadata from various possible fields
+                    let title = data.Title || data.title || data.totitle || "";
+                    let artist = data.Artist || data.artist || "";
+                    let album = data.Album || data.album || "";
+                    let artUrl = data.logo || data.albumart_url || data.AlbumArtUrl || data.album_url || data.cover || data.AlbumArt64 || data.AlbumArtURI || data.icon || "";
+                    
+                    if (artUrl) console.log("Step 2: Found Art URL in status:", artUrl);
+
+                    // Try parsing MetaData field (DIDL-Lite XML)
+                    if (data.MetaData) {
+                        console.log("Step 2b: Found MetaData field, attempting to parse XML...");
+                        const meta = parseWiiMMetaData(data.MetaData);
+                        if (meta.title) title = meta.title;
+                        if (meta.artist) artist = meta.artist;
+                        if (meta.album) album = meta.album;
+                        if (meta.artUrl) {
+                            artUrl = meta.artUrl;
+                            console.log("Step 2b: Extracted Art URL from MetaData:", artUrl);
+                        }
+                    }
                     
                     const dTitle = decodeWiiMText(title);
                     const dArtist = decodeWiiMText(artist);
+                    const dAlbum = decodeWiiMText(album);
                     let dArtUrl = decodeWiiMText(artUrl);
+
+                    if (artUrl !== dArtUrl) console.log("Step 4: Decoded Art URL:", dArtUrl);
                     
                     const isPlaying = data.status === 'play' || data.status === '1';
                     
                     document.getElementById('wiimTitle').innerText = dTitle || (isPlaying ? "Streaming..." : "Not Playing");
                     document.getElementById('wiimArtist').innerText = dArtist || (dTitle ? "--" : "--");
+                    const albumDiv = document.getElementById('wiimAlbum');
+                    albumDiv.innerText = dAlbum || "";
+                    albumDiv.style.display = dAlbum ? 'block' : 'none';
                     
                     const artImg = document.getElementById('wiimAlbumArt');
                     const artContainer = document.getElementById('wiimArtContainer');
 
                     if (dArtUrl && dArtUrl !== "unknown" && dArtUrl !== "0") {
+                        console.log("Step 5: Processing final Art URL for display...");
+                        // Handle Base64
                         if (dArtUrl.length > 100 && !dArtUrl.startsWith('http') && !dArtUrl.startsWith('data:')) {
+                            console.log("Step 5: Detected Base64 image data.");
                             dArtUrl = 'data:image/png;base64,' + dArtUrl;
                         }
+                        
                         let finalArtUrl = dArtUrl;
-                        if (dArtUrl.startsWith('http://' + ip) || dArtUrl.startsWith('https://' + ip)) {
+                        // Proxy local URLs (check for IP or localhost or private ranges)
+                        const isLocal = dArtUrl.includes(ip) || 
+                                        dArtUrl.includes('192.168.') || 
+                                        dArtUrl.includes('10.') || 
+                                        dArtUrl.includes('172.') ||
+                                        dArtUrl.startsWith('/');
+                        
+                        if (isLocal && dArtUrl.startsWith('http')) {
+                            console.log("Step 5: Local IP detected in URL. Routing through proxy to bypass CORS.");
                             finalArtUrl = `/proxy?url=${encodeURIComponent(dArtUrl)}`;
+                        } else if (dArtUrl.startsWith('/')) {
+                            // Relative to device
+                            console.log("Step 5: Relative path detected. Constructing absolute URL and routing through proxy.");
+                            const target = `https://${ip}${dArtUrl}`;
+                            finalArtUrl = `/proxy?url=${encodeURIComponent(target)}`;
+                        } else {
+                            console.log("Step 5: URL appears external or non-local. Loading directly.");
                         }
-                        artImg.src = finalArtUrl;
+                        
+                        if (artImg.src !== finalArtUrl) {
+                            console.log("Step 6: Updating Image Element src.");
+                            artImg.src = finalArtUrl;
+                        }
                         artContainer.style.display = 'block';
                     } else {
+                        console.log("Step 5: No Art URL available to display.");
                         artContainer.style.display = 'none';
                         artImg.src = '';
                     }
@@ -257,14 +307,13 @@
             document.getElementById('volumeValue').innerText = dbValue;
             
             const btnMute = document.getElementById('btnMute');
+            const muteIcon = document.getElementById('muteIcon');
             if (currentVolume > 0) {
-                btnMute.innerText = 'Mute';
                 btnMute.classList.remove('active');
-                btnMute.style.backgroundColor = '#2c2c2e';
+                if (muteIcon) muteIcon.src = "https://img.icons8.com/ios-filled/50/ffffff/speaker.png";
             } else {
-                btnMute.innerText = 'Unmute';
                 btnMute.classList.add('active');
-                btnMute.style.backgroundColor = 'var(--accent-color)';
+                if (muteIcon) muteIcon.src = "https://img.icons8.com/ios-filled/50/ffffff/mute.png";
             }
 
             const progress = document.getElementById('volProgress');
