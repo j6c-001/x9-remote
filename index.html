@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Remote</title>
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/192/ffffff/amplifier.png">
+    <style>
+        :root {
+            --bg-color: #000000;
+            --surface-color: #1c1c1e;
+            --text-color: #ffffff;
+            --accent-color: #0a84ff;
+            --success-color: #30d158;
+            --secondary-text: #8e8e93;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            margin-top: 20px;
+        }
+        #deviceName {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .info-subtitle {
+            font-size: 14px;
+            color: var(--secondary-text);
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .control-group {
+            background-color: var(--surface-color);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--secondary-text);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        button {
+            background-color: #2c2c2e;
+            color: white;
+            border: none;
+            padding: 18px 10px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active {
+            transform: scale(0.96);
+            background-color: #3a3a3c;
+        }
+        button.active {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        .btn-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-icon {
+            width: 26px;
+            height: 26px;
+        }
+        .btn-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-label-light {
+            font-weight: 300;
+        }
+        .button-grid button {
+            padding: 15px 10px;
+        }
+        .volume-container {
+            margin-top: 10px;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 40px;
+            background: #2c2c2e;
+            border-radius: 20px;
+            outline: none;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 0;
+            box-shadow: -400px 0 0 400px var(--accent-color);
+        }
+        .volume-display {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .hidden { display: none; }
+        .settings-toggle {
+            text-align: center;
+            color: var(--secondary-text);
+            font-size: 13px;
+            margin-top: 20px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        #settingsPanel {
+            margin-top: 20px;
+            font-size: 12px;
+        }
+        input[type="text"] {
+            background: #2c2c2e;
+            border: 1px solid #3a3a3c;
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        pre {
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            color: #0f0;
+            font-size: 10px;
+        }
+        .circular-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            margin: 20px 0;
+            touch-action: none;
+        }
+        .circular-slider {
+            width: 240px;
+            height: 240px;
+            transform: rotate(135deg);
+        }
+        .circular-slider circle {
+            fill: none;
+            stroke-width: 15;
+            stroke-linecap: round;
+        }
+        .circular-slider .bg {
+            stroke: #2c2c2e;
+            stroke-dasharray: 471 628;
+        }
+        .circular-slider .progress {
+            stroke: var(--accent-color);
+            stroke-dasharray: 471 628;
+            stroke-dashoffset: 471;
+        }
+        .circular-slider .handle {
+            fill: white;
+            cursor: pointer;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+        }
+        .volume-display-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+        .volume-display-inner .val {
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .volume-display-inner .unit {
+            font-size: 14px;
+            color: var(--secondary-text);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px;">
+                <div id="statusDot" style="width: 10px; height: 10px; border-radius: 50%; background-color: #8e8e93; transition: background-color 0.3s;"></div>
+                <div id="deviceName" style="font-size: 24px; font-weight: 700;">Connecting...</div>
+            </div>
+            <div class="info-subtitle">
+                <span id="deviceVersion">--</span>
+                <span>•</span>
+                <span id="audioFormat">--</span>
+                <span>•</span>
+                <span style="font-size: 10px; color: var(--secondary-text);">v1.0.7</span>
+            </div>
+        </header>
+
+
+        <div class="control-group">
+            <div class="label">Input Source</div>
+            <div class="button-grid">
+                <button id="btnInput5" onclick="setSetting('input', 5)">
+                    <div class="btn-content">
+                        <img src="https://img.icons8.com/ios-filled/50/ffffff/tv.png" class="btn-icon">
+                        <span class="btn-label btn-label-light">TV</span>
+                    </div>
+                </button>
+                <button id="btnInput3" onclick="setSetting('input', 3)">
+                    <div class="btn-content">
+                        <img src="https://img.icons8.com/ios-filled/50/ffffff/music.png" class="btn-icon">
+                        <span class="btn-label">Tunes</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="label">Audio Control</div>
+            
+            <!-- Volume Sub-section -->
+            <div class="circular-container" id="volCircularContainer">
+                <svg class="circular-slider" viewBox="0 0 220 220">
+                    <circle class="bg" cx="110" cy="110" r="100"></circle>
+                    <circle id="volProgress" class="progress" cx="110" cy="110" r="100"></circle>
+                    <circle id="volHandle" class="handle" cx="210" cy="110" r="10"></circle>
+                </svg>
+                <div class="volume-display-inner">
+                    <div class="val" id="volumeValue">--</div>
+                    <div class="unit">dB</div>
+                </div>
+            </div>
+            
+            <button id="btnMute" style="width: 100%; margin-top: 10px;" onclick="muteVolume()">Mute</button>
+
+            <!-- VU Meter Sub-section -->
+            <div id="vuGroup" style="margin-top: 30px; border-top: 1px solid #2c2c2e; padding-top: 20px;">
+                <div class="volume-display" id="vuValue" style="font-size: 24px; margin-bottom: 10px;">--</div>
+                <div class="volume-container">
+                    <input type="range" id="vuRange" min="0" max="0" oninput="updateVuDisplay(this.value)" onchange="setSetting('vu', this.value)">
+                </div>
+                <div style="text-align: center; font-size: 10px; color: var(--secondary-text); text-transform: uppercase;">VU Meter</div>
+            </div>
+        </div>
+
+        <div class="settings-toggle" onclick="toggleSettings()">Advanced Settings</div>
+        
+        <div id="settingsPanel" class="hidden">
+            <div class="control-group">
+                <div class="label">Device IP</div>
+                <input type="text" id="deviceIp" placeholder="e.g., 192.168.2.30" value="192.168.2.30">
+                <button style="width:100%; padding: 10px;" onclick="refreshState()">Reconnect</button>
+            </div>
+            <div class="control-group">
+                <div class="label">Raw State</div>
+                <pre id="currentState">Ready</pre>
+            </div>
+            <div class="control-group">
+                <div class="label">Installation</div>
+                <button id="installBtn" style="width:100%; padding: 10px; display: none; margin-bottom: 10px;" onclick="installApp()">Install as App</button>
+                <div style="font-size: 11px; color: var(--secondary-text); line-height: 1.4;">
+                    To install on Android: Tap the browser menu (⋮) and select <b>"Add to Home screen"</b> or <b>"Install app"</b>.
+                </div>
+            </div>
+            <div class="control-group">
+                <div class="label">App Control</div>
+                <button style="width:100%; padding: 10px; background-color: #444;" onclick="clearAppCache()">Clear Cache & Reload</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            // Update UI to notify the user they can add to home screen
+            const btn = document.getElementById('installBtn');
+            if (btn) btn.style.display = 'block';
+        });
+
+        async function installApp() {
+            if (!deferredPrompt) return;
+            // Show the prompt
+            deferredPrompt.prompt();
+            // Wait for the user to respond to the prompt
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                deferredPrompt = null;
+                document.getElementById('installBtn').style.display = 'none';
+            }
+        }
+
+        async function clearAppCache() {
+            if (confirm('This will unregister the service worker and clear all local caches. The app will then reload. Continue?')) {
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                    }
+                }
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    for (let name of cacheNames) {
+                        await caches.delete(name);
+                    }
+                }
+                window.location.reload();
+            }
+        }
+        const ALPHABET_CUSTOM = "KLMPQRSTUVWXYZABCGHdefIJjkNOlmnopqrstuvwxyzabcghiDEF34501289+67/";
+        const ALPHABET_STANDARD = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+        function decodeCustom(encoded) {
+            let translated = "";
+            for (let i = 0; i < encoded.length; i++) {
+                const char = encoded.charAt(i);
+                const index = ALPHABET_CUSTOM.indexOf(char);
+                translated += index !== -1 ? ALPHABET_STANDARD.charAt(index) : char;
+            }
+            const decoded = atob(translated);
+            const bytes = new Uint8Array(decoded.length);
+            for (let i = 0; i < decoded.length; i++) {
+                bytes[i] = decoded.charCodeAt(i);
+            }
+            return new TextDecoder("utf-8").decode(bytes);
+        }
+
+        async function fetchDevice(path) {
+            const ip = document.getElementById('deviceIp').value;
+            if (!ip) return;
+            
+            // Direct fetch to device (may require manual certificate acceptance in browser)
+            const url = `https://${ip}${path}`;
+            
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json, text/plain, */*',
+                        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36'
+                    }
+                });
+                if (!response.ok) throw new Error("Device returned " + response.status);
+                
+                const text = await response.text();
+                // Update status to online if we got a response
+                document.getElementById('statusDot').style.backgroundColor = "#30d158"; // Success green
+                return text;
+            } catch (e) {
+                console.error("Fetch error:", e);
+                document.getElementById('currentState').innerText = "Error: " + e.message;
+                document.getElementById('deviceName').innerText = "Unreachable";
+                document.getElementById('statusDot').style.backgroundColor = "#ff3b30"; // Error red
+            }
+        }
+
+
+        let currentVolume = 0;
+        let lastConfirmedVolume = 0;
+        let volumeBeforeMute = 40; // Default restore value
+        let isDraggingVol = false;
+        let isSettingVolume = false;
+
+        function initCircularSlider() {
+            const container = document.getElementById('volCircularContainer');
+            
+            const handleMove = (e) => {
+                if (!isDraggingVol) return;
+                e.preventDefault();
+                
+                const rect = container.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const touch = e.touches ? e.touches[0] : e;
+                const x = touch.clientX - centerX;
+                const y = touch.clientY - centerY;
+                
+                let angle = Math.atan2(y, x);
+                let degrees = angle * 180 / Math.PI;
+                
+                // Shift so world 135deg (7:30) is 0
+                let shifted = degrees - 135;
+                while (shifted < 0) shifted += 360;
+                
+                // 0 to 270 degrees is the active range
+                let normalized = 0;
+                if (shifted <= 270) {
+                    normalized = shifted / 270;
+                } else if (shifted > 315) {
+                    normalized = 0;
+                } else {
+                    normalized = 1;
+                }
+                
+                let newValue = Math.round(normalized * 200);
+                
+                updateVolDisplay(newValue);
+            };
+
+            const handleEnd = () => {
+                if (isDraggingVol) {
+                    isDraggingVol = false;
+                    setSetting('volume', currentVolume);
+                }
+            };
+
+            const handle = document.getElementById('volHandle');
+            handle.addEventListener('mousedown', (e) => {
+                isDraggingVol = true;
+            });
+            handle.addEventListener('touchstart', (e) => {
+                isDraggingVol = true;
+            }, { passive: false });
+
+            window.addEventListener('mousemove', handleMove);
+            window.addEventListener('touchmove', handleMove, { passive: false });
+            window.addEventListener('mouseup', handleEnd);
+            window.addEventListener('touchend', handleEnd);
+        }
+
+        function updateVolDisplay(val) {
+            currentVolume = parseInt(val);
+            if (currentVolume > 0) {
+                volumeBeforeMute = currentVolume;
+            }
+            const dbValue = ((val - 200) / 2).toFixed(1);
+            document.getElementById('volumeValue').innerText = dbValue;
+            
+            const btnMute = document.getElementById('btnMute');
+            if (currentVolume > 0) {
+                btnMute.innerText = 'Mute';
+                btnMute.classList.remove('active');
+                btnMute.style.backgroundColor = '#2c2c2e';
+            } else {
+                btnMute.innerText = 'Unmute';
+                btnMute.classList.add('active');
+                btnMute.style.backgroundColor = 'var(--accent-color)';
+            }
+            btnMute.style.display = 'block';
+
+            // Update circular slider visuals
+            const progress = document.getElementById('volProgress');
+            const handle = document.getElementById('volHandle');
+            const circumference = 2 * Math.PI * 100;
+            const arcLength = circumference * 0.75;
+            
+            progress.style.strokeDashoffset = arcLength - (val / 200) * arcLength;
+
+            // Color blending: -25dB (150) to 0dB (200)
+            // Blue: #0a84ff (10, 132, 255)
+            // Red: #ff3b30 (255, 59, 48)
+            if (val >= 150) {
+                const ratio = (val - 150) / 50;
+                const r = Math.round(10 + (255 - 10) * ratio);
+                const g = Math.round(132 + (59 - 132) * ratio);
+                const b = Math.round(255 + (48 - 255) * ratio);
+                progress.style.stroke = `rgb(${r}, ${g}, ${b})`;
+            } else {
+                progress.style.stroke = 'var(--accent-color)';
+            }
+
+            // Handle position (sweep starts at 0 internal, which is 7:30 screen due to rotation)
+            const angle = ((val / 200) * 270) * Math.PI / 180;
+            const hX = 110 + 100 * Math.cos(angle);
+            const hY = 110 + 100 * Math.sin(angle);
+            handle.setAttribute('cx', hX);
+            handle.setAttribute('cy', hY);
+        }
+
+        function updateVuDisplay(val) {
+            document.getElementById('vuValue').innerText = val;
+        }
+
+        async function muteVolume() {
+            if (currentVolume > 0) {
+                // Save current volume and mute
+                volumeBeforeMute = currentVolume;
+                await setSetting('volume', 0);
+            } else {
+                // Restore previous volume
+                await setSetting('volume', volumeBeforeMute || 40);
+            }
+        }
+
+        async function setSetting(param, value) {
+            let valToSend = value;
+            
+            // Safety check for volume
+            if (param === 'volume') {
+                isSettingVolume = true;
+                valToSend = Math.max(0, Math.min(200, parseInt(value)));
+                
+                // Update local state immediately to keep UI stable
+                updateVolDisplay(valToSend);
+            }
+
+            try {
+                await fetchDevice(`/dev/info.cgi?action=setting&${param}=${valToSend}`);
+                if (param === 'volume') {
+                    lastConfirmedVolume = valToSend;
+                }
+            } finally {
+                if (param === 'volume') {
+                    // Stay in "setting" mode for a bit to allow the device to process and return new state
+                    setTimeout(() => { isSettingVolume = false; }, 2000);
+                }
+            }
+            // Delay refresh to give device time to update internal state
+            setTimeout(refreshState, 1000);
+        }
+
+        async function refreshState() {
+            const ip = document.getElementById('deviceIp').value;
+            if (ip) {
+                localStorage.setItem('deviceIp', ip);
+            }
+            const data = await fetchDevice('/dev/info.cgi?action=syncData');
+            if (data) {
+                try {
+                    const decoded = decodeCustom(data);
+                    const state = JSON.parse(decoded);
+                    document.getElementById('currentState').innerText = JSON.stringify(state, null, 2);
+                    
+                    if (state.volume !== undefined) {
+                        lastConfirmedVolume = state.volume;
+                        // Only update if not dragging or actively setting volume to avoid jumping
+                        if (!isDraggingVol && !isSettingVolume) {
+                            updateVolDisplay(state.volume);
+                        }
+                    }
+
+                    if (state.vu !== undefined && state.vu_count !== undefined) {
+                        const vuRange = document.getElementById('vuRange');
+                        vuRange.max = state.vu_count - 1;
+                        vuRange.value = state.vu;
+                        document.getElementById('vuValue').innerText = state.vu;
+                        document.getElementById('vuGroup').style.display = 'block';
+                    } else {
+                        document.getElementById('vuGroup').style.display = 'none';
+                    }
+
+                    if (state.device) document.getElementById('deviceName').innerText = state.device;
+                    if (state.version) document.getElementById('deviceVersion').innerText = state.version;
+                    if (state.audioFormat) document.getElementById('audioFormat').innerText = state.audioFormat;
+
+                    document.getElementById('btnInput5').classList.toggle('active', state.input === 5);
+                    document.getElementById('btnInput3').classList.toggle('active', state.input === 3);
+                } catch (e) {
+                    console.error("Decode error:", e);
+                }
+            }
+        }
+
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            panel.classList.toggle('hidden');
+        }
+
+        // PWA Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
+            });
+        }
+
+        // Load saved IP
+        const savedIp = localStorage.getItem('deviceIp');
+        if (savedIp) {
+            document.getElementById('deviceIp').value = savedIp;
+        }
+
+        refreshState();
+        initCircularSlider();
+        updateVolDisplay(0);
+        setInterval(refreshState, 5000);
+    </script>
+</body>
+</html>
