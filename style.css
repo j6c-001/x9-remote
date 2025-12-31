@@ -329,3 +329,21 @@ pre {
 .mute-btn.active {
     background-color: var(--accent-color);
 }
+
+#bgArt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background-size: cover;
+    background-position: center top;
+    opacity: 0.8;
+    filter: blur(5px);
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+    transition: background-image 1s ease-in-out;
+    pointer-events: none;
+    transform: scale(1.05);
+}

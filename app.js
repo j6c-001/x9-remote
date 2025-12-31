@@ -22,12 +22,13 @@ function decodeWiiMText(text) {
     if (!text || text === "unknown" || text === "556E6B6E6F776E" || text === "Unkown" || text === "0") return "";
     
     let decoded = text;
-    // If it looks like hex, try to decode it
-    if (/^[0-9A-Fa-f]+$/.test(text) && text.length % 2 === 0) {
+    // If it looks like hex (possibly with spaces), try to decode it
+    const cleanHex = text.replace(/\s+/g, '');
+    if (/^[0-9A-Fa-f]+$/.test(cleanHex) && cleanHex.length % 2 === 0 && cleanHex.length > 4) {
         try {
-            const bytes = new Uint8Array(text.length / 2);
-            for (let i = 0; i < text.length; i += 2) {
-                bytes[i/2] = parseInt(text.substr(i, 2), 16);
+            const bytes = new Uint8Array(cleanHex.length / 2);
+            for (let i = 0; i < cleanHex.length; i += 2) {
+                bytes[i/2] = parseInt(cleanHex.substr(i, 2), 16);
             }
             decoded = new TextDecoder("utf-8").decode(bytes);
         } catch (e) { 
@@ -39,41 +40,73 @@ function decodeWiiMText(text) {
     if (typeof decoded === 'string' && decoded.includes('&')) {
         try {
             const doc = new DOMParser().parseFromString(decoded, 'text/html');
-            return doc.documentElement.textContent;
-        } catch (e) {
-            return decoded;
-        }
+            decoded = doc.documentElement.textContent || decoded;
+        } catch (e) {}
     }
     
     return decoded;
 }
 
-function parseWiiMMetaData(metaDataHex) {
-    console.log("XML Parser: Decoding MetaData hex...");
-    const decoded = decodeWiiMText(metaDataHex);
-    if (!decoded || (typeof decoded === 'string' && !decoded.includes('<'))) {
-        console.log("XML Parser: No valid XML found in MetaData. Decoded was: " + (decoded ? decoded.substring(0, 50) + "..." : "empty"));
+function parseWiiMMetaData(metaData) {
+    if (!metaData) return {};
+    
+    // If it's hex, decode it first
+    let xml = metaData;
+    if (/^[0-9A-Fa-f\s]+$/.test(metaData) && metaData.length > 10) {
+        xml = decodeWiiMText(metaData);
+    }
+    
+    if (!xml || (typeof xml === 'string' && !xml.includes('<'))) {
         return {};
     }
     
-    console.log("XML Parser: Decoded XML (first 100 chars):", decoded.substring(0, 100));
+    console.log("XML Parser: Analyzing XML...");
     const results = {};
-    const getMatch = (tag) => {
-        // Handle optional namespace prefix and attributes
-        const re = new RegExp(`<(?:[^>]*:)?${tag}[^>]*>(.*?)<\\/`, 'i');
-        const m = decoded.match(re);
-        if (m) console.log(`XML Parser: Found ${tag}: ${m[1].substring(0, 30)}${m[1].length > 30 ? '...' : ''}`);
-        return m ? m[1] : null;
+    const getTagValue = (tag) => {
+        // More robust regex for UPnP/DIDL-Lite tags
+        // Matches <tag>, <ns:tag>, <tag attr="val">, etc.
+        const re = new RegExp(`<(?:[\\w\\d]+:)?${tag}[^>]*>([\\s\\S]*?)<\\/(?:[\\w\\d]+:)?${tag}>`, 'i');
+        const m = xml.match(re);
+        if (m) {
+            let val = m[1].trim();
+            // Sometimes values are CDATA wrapped
+            if (val.startsWith('<![CDATA[')) {
+                val = val.substring(9, val.length - 3);
+            }
+            console.log(`XML Parser: Found ${tag}`);
+            return val;
+        }
+        return null;
     };
 
     try {
-        results.title = getMatch('title');
-        results.artist = getMatch('artist');
-        results.album = getMatch('album');
-        results.artUrl = getMatch('albumArtURI') || getMatch('logo') || getMatch('icon') || getMatch('albumArtUrl');
-        if (results.artUrl) console.log("XML Parser: Successfully extracted Art URL.");
+        results.title = getTagValue('title');
+        results.artist = getTagValue('artist') || getTagValue('creator');
+        results.album = getTagValue('album');
+        // Check multiple common art tags
+        results.artUrl = getTagValue('albumArtURI') || getTagValue('icon') || getTagValue('logo') || getTagValue('albumArtUrl') || getTagValue('cover');
+        
+        // Fallback 1: Search for any URL ending in an image extension within the XML
+        if (!results.artUrl) {
+            const artRe = /https?:\/\/[^<"']+\.(?:jpg|jpeg|png|webp|gif|bmp)[^<"']*/i;
+            const artMatch = xml.match(artRe);
+            if (artMatch) {
+                results.artUrl = artMatch[0].trim();
+                console.log("XML Parser: Found art URL via generic regex:", results.artUrl);
+            }
+        }
+        
+        // Fallback 2: Check for relative paths in albumArtURI specifically
+        if (!results.artUrl) {
+            const relArtRe = /<(?:[\w\d]+:)?albumArtURI[^>]*>([^<]+)<\//i;
+            const relArtMatch = xml.match(relArtRe);
+            if (relArtMatch) {
+                results.artUrl = relArtMatch[1].trim();
+                console.log("XML Parser: Found possible relative art path:", results.artUrl);
+            }
+        }
     } catch (e) {
-        console.warn("XML Parser: Error parsing WiiM MetaData:", e);
+        console.warn("XML Parser: Error:", e);
     }
     return results;
 }

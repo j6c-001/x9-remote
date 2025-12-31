@@ -1,4 +1,4 @@
-const CACHE_NAME = 'device-remote-v39';
+const CACHE_NAME = 'device-remote-v55';
 const ASSETS = [
   '/',
   '/index.html',
