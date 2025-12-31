@@ -157,11 +157,24 @@
         let lastWiiMTrackKey = "";
         let isWiiMDeepDiveDone = false;
         let lastWiiMArtUrl = "";
+        let lastMsgCount = -1;
 
-        async function refreshAmpState() {
+        async function refreshAmpState(force = false) {
             if (isRefreshingAmp) return;
             isRefreshingAmp = true;
             try {
+                // Optimization: Check msgCount first to see if anything actually changed
+                if (!force) {
+                    const countText = await fetchDevice("/msgCount");
+                    if (countText !== null) {
+                        const count = parseInt(countText);
+                        if (!isNaN(count) && count === lastMsgCount) {
+                            isRefreshingAmp = false;
+                            return;
+                        }
+                    }
+                }
+
                 const text = await fetchDevice("/dev/info.cgi?action=syncData");
                 if (text) {
                     const decoded = decodeCustom(text);
@@ -192,6 +205,10 @@
                     }
                     if (data.vu !== undefined && !isScrollingCarousel) {
                         updateVuCarousel(data.vu);
+                    }
+                    
+                    if (data.msgCount !== undefined) {
+                        lastMsgCount = parseInt(data.msgCount);
                     }
                     
                     document.getElementById('currentState').innerText = decoded;
@@ -420,7 +437,7 @@
                 await fetchDevice(`/dev/info.cgi?action=setting&volume=${target}`);
                 lastHardwareVol = target;
                 setTimeout(() => { isSettingVolume = false; }, 1000);
-                setTimeout(refreshAmpState, 1000);
+                setTimeout(() => refreshAmpState(true), 1000);
                 return;
             }
 
@@ -445,7 +462,7 @@
             
             if (!aborted && !isDraggingVol) {
                 setTimeout(() => { isSettingVolume = false; }, 1000);
-                setTimeout(refreshAmpState, 1000);
+                setTimeout(() => refreshAmpState(true), 1000);
             }
             volumeEaseAbort = null;
         }
@@ -457,7 +474,7 @@
                 try {
                     await fetchDevice(`/dev/info.cgi?action=setting&${param}=${value}`);
                 } catch (e) {}
-                setTimeout(refreshAmpState, 1000);
+                setTimeout(() => refreshAmpState(true), 1000);
             }
         }
 
@@ -590,7 +607,7 @@
         initApp();
         initCircularSlider();
         globalRefresh();
-        setInterval(globalRefresh, 5000);
+        setInterval(globalRefresh, 3000);
     </script>
 </body>
 </html>
