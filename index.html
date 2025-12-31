@@ -4,51 +4,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#000000">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Remote">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/180/ffffff/speaker.png">
+    <link rel="apple-touch-icon" href="icon-180.png">
     <title>Device Remote</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; margin-bottom: 4px;">
-                <div id="statusDot" style="width: 8px; height: 8px; border-radius: 50%; background-color: #8e8e93; transition: background-color 0.3s;"></div>
-                <div id="deviceName" style="font-size: 14px; font-weight: 900; color: var(--secondary-text);">Connecting...</div>
-            </div>
-            <div class="info-subtitle">
-                <span id="deviceVersion">--</span>
-                <span>•</span>
-                <span id="audioFormat">--</span>
-                <span>•</span>
-                <span style="font-size: 10px; color: var(--secondary-text);">v1.5.4</span>
-            </div>
-        </header>
-
         <div id="mainView" class="view-container">
             <!-- WiiM Now Playing Section -->
-            <div id="wiimGroup" class="control-group" style="display: none; position: relative; overflow: hidden;">
+            <div id="wiimGroup" class="control-group" style="position: relative; overflow: hidden;">
                 <div id="bgArt"></div>
-                <div style="text-align: center; margin-bottom: 20px; overflow: hidden; position: relative; z-index: 1;">
-                    <div id="wiimArtContainer" style="margin-bottom: 15px; display: none;">
-                        <img id="wiimAlbumArt" src="" style="width: 160px; height: 160px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.5); background-color: #2c2c2e;" onerror="console.error('Album Art Load Failed:', this.src)">
-                    </div>
-                    <div id="wiimTitle" style="font-size: 18px; font-weight: 700; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Not Playing</div>
-                    <div id="wiimArtist" style="font-size: 14px; color: var(--secondary-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</div>
-                    <div id="wiimAlbum" style="font-size: 12px; color: var(--secondary-text); opacity: 0.7; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 5px; margin-bottom: 5px; position: relative; z-index: 1;">
+                    <div id="statusDot" style="width: 8px; height: 8px; border-radius: 50%; background-color: #8e8e93; transition: background-color 0.3s;"></div>
+                    <div id="deviceName" style="font-size: 14px; font-weight: 900; color: var(--secondary-text);">Connecting...</div>
+                    <span id="deviceVersion" style="font-size: 10px; color: var(--secondary-text); opacity: 0.6;">--</span>
                 </div>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 10px; position: relative; z-index: 1;">
-                    <button class="transport-btn" onclick="sendWiimCmd('setPlayerCmd:prev')">
-                        <img src="https://img.icons8.com/ios-filled/50/ffffff/previous.png">
-                    </button>
-                    <button class="transport-btn play-pause" onclick="sendWiimCmd('setPlayerCmd:onepause')">
-                        <img id="wiimPlayIcon" src="https://img.icons8.com/ios-filled/50/ffffff/play.png">
-                    </button>
-                    <button class="transport-btn" onclick="sendWiimCmd('setPlayerCmd:next')">
-                        <img src="https://img.icons8.com/ios-filled/50/ffffff/next.png">
-                    </button>
+                <div id="audioFormat" style="text-align: center; font-size: 10px; color: var(--accent-color); margin-bottom: 15px; font-weight: 600; letter-spacing: 0.5px; position: relative; z-index: 1;">--</div>
+
+                <div id="wiimContent" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 20px; overflow: hidden; position: relative; z-index: 1;">
+                        <div id="wiimArtContainer" style="margin-bottom: 15px; display: none;">
+                            <img id="wiimAlbumArt" src="" style="width: 160px; height: 160px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.5); background-color: #2c2c2e;" onerror="console.error('Album Art Load Failed:', this.src)">
+                        </div>
+                        <div id="wiimTitle" style="font-size: 18px; font-weight: 700; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Not Playing</div>
+                        <div id="wiimArtist" style="font-size: 14px; color: var(--secondary-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">--</div>
+                        <div id="wiimAlbum" style="font-size: 12px; color: var(--secondary-text); opacity: 0.7; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; position: relative; z-index: 1; margin-bottom: 10px;">
+                        <button class="transport-btn" onclick="sendWiimCmd('setPlayerCmd:prev')">
+                            <img src="https://img.icons8.com/ios-filled/50/ffffff/previous.png">
+                        </button>
+                        <button class="transport-btn play-pause" onclick="sendWiimCmd('setPlayerCmd:onepause')">
+                            <img id="wiimPlayIcon" src="https://img.icons8.com/ios-filled/50/ffffff/play.png">
+                        </button>
+                        <button class="transport-btn" onclick="sendWiimCmd('setPlayerCmd:next')">
+                            <img src="https://img.icons8.com/ios-filled/50/ffffff/next.png">
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -118,7 +115,12 @@
                 <pre id="currentState">Ready</pre>
             </div>
             <div class="control-group">
-                <div class="label">Installation</div>
+                <div class="label">Installation & PWA Status</div>
+                <div id="pwaStatus" style="font-size: 10px; color: var(--secondary-text); margin-bottom: 10px; line-height: 1.6;">
+                    • Protocol: <span id="protocolStatus">--</span><br>
+                    • Service Worker: <span id="swStatus">--</span><br>
+                    • Installable: <span id="installStatus">No (Wait for browser detection)</span>
+                </div>
                 <button id="installBtn" style="width:100%; padding: 10px; display: none; margin-bottom: 10px;" onclick="installApp()">Install as App</button>
                 <div style="font-size: 11px; color: var(--secondary-text); line-height: 1.4;">
                     To install on Android: Tap the browser menu (⋮) and select <b>"Add to Home screen"</b> or <b>"Install app"</b>.
@@ -132,6 +134,9 @@
                 <div class="label">Troubleshooting & SSL</div>
                 <button style="width:100%; padding: 10px; margin-bottom: 5px; font-size: 11px;" onclick="window.open('http://' + document.getElementById('deviceIp').value, '_blank')">Open Amp directly</button>
                 <button style="width:100%; padding: 10px; font-size: 11px;" onclick="window.open('https://' + document.getElementById('wiimIp').value, '_blank')">Open WiiM directly</button>
+            </div>
+            <div style="text-align: center; padding: 20px 0 10px 0; opacity: 0.5; font-size: 10px;">
+                Device Remote v1.6.0
             </div>
         </div>
     </div>
@@ -204,11 +209,14 @@
             const ip = ipInput.replace(/^https?:\/\//, '').split('/')[0];
             
             const wiimGroup = document.getElementById('wiimGroup');
+            const wiimContent = document.getElementById('wiimContent');
+            
             if (!ip) {
-                wiimGroup.style.display = 'none';
+                if (wiimContent) wiimContent.style.display = 'none';
+                // Keep wiimGroup visible because it now contains the Amp status
                 return;
             }
-            wiimGroup.style.display = 'block';
+            if (wiimContent) wiimContent.style.display = 'block';
             
             isRefreshingWiiM = true;
             try {
@@ -286,6 +294,15 @@
                     const albumDiv = document.getElementById('wiimAlbum');
                     albumDiv.innerText = dAlbum || "";
                     albumDiv.style.display = dAlbum ? 'block' : 'none';
+
+                    // Update Quality/Bitrate in the Now Playing section
+                    const bitrate = data.bitrate || "";
+                    const sampleRate = data.samplerate ? (data.samplerate/1000).toFixed(1) + " kHz" : "";
+                    const quality = [bitrate ? bitrate + " kbps" : "", sampleRate].filter(Boolean).join(" • ");
+                    const formatDiv = document.getElementById('audioFormat');
+                    if (formatDiv && (quality || data.audioFormat)) {
+                        formatDiv.innerText = quality || data.audioFormat;
+                    }
                     
                     const artImg = document.getElementById('wiimAlbumArt');
                     const artContainer = document.getElementById('wiimArtContainer');

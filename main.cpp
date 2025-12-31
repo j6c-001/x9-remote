@@ -4,7 +4,7 @@
 #include <sstream>
 
 std::string read_file(const std::string& path) {
-    std::ifstream file(path);
+    std::ifstream file(path, std::ios::binary);
     if (!file.is_open()) return "";
     std::stringstream buffer;
     buffer << file.rdbuf();
@@ -33,7 +33,7 @@ int main() {
     svr.Get("/", serve_file("index.html", "text/html"));
     svr.Get("/style.css", serve_file("style.css", "text/css"));
     svr.Get("/app.js", serve_file("app.js", "application/javascript"));
-    svr.Get("/manifest.json", serve_file("manifest.json", "application/json"));
+    svr.Get("/manifest.json", serve_file("manifest.json", "application/manifest+json"));
     svr.Get("/sw.js", serve_file("sw.js", "application/javascript"));
 
     svr.Get(R"(/vu_\d+\.webp)", [](const httplib::Request& req, httplib::Response& res) {
@@ -44,6 +44,20 @@ int main() {
         }
         if (!content.empty()) {
             res.set_content(content, "image/webp");
+        } else {
+            res.status = 404;
+            res.set_content(filename + " not found", "text/plain");
+        }
+    });
+
+    svr.Get(R"(/icon-\d+\.png)", [](const httplib::Request& req, httplib::Response& res) {
+        std::string filename = req.path.substr(1);
+        std::string content = read_file(filename);
+        if (content.empty()) {
+            content = read_file("../" + filename);
+        }
+        if (!content.empty()) {
+            res.set_content(content, "image/png");
         } else {
             res.status = 404;
             res.set_content(filename + " not found", "text/plain");

@@ -220,6 +220,8 @@ window.addEventListener('beforeinstallprompt', (e) => {
     console.log('PWA: Install prompt deferred. "Install as App" button is now available in Advanced Settings.');
     const btn = document.getElementById('installBtn');
     if (btn) btn.style.display = 'block';
+    const installStatus = document.getElementById('installStatus');
+    if (installStatus) installStatus.innerText = 'Yes (Ready to Install)';
 });
 
 async function installApp() {
@@ -253,6 +255,14 @@ async function clearAppCache() {
 
 // Initialization
 function initApp() {
+    // Update PWA Status UI
+    const protocolStatus = document.getElementById('protocolStatus');
+    if (protocolStatus) {
+        const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        protocolStatus.innerText = window.location.protocol + (isSecure ? ' (Secure)' : ' (NOT SECURE - PWA may be disabled)');
+        if (!isSecure) protocolStatus.style.color = '#ff3b30';
+    }
+
     // Load saved IPs
     const savedIp = localStorage.getItem('deviceIp');
     if (savedIp) {
@@ -268,8 +278,20 @@ function initApp() {
     // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(() => {});
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                const swStatus = document.getElementById('swStatus');
+                if (swStatus) swStatus.innerText = 'Active (' + (reg.active ? 'Running' : 'Activating') + ')';
+            }).catch(err => {
+                const swStatus = document.getElementById('swStatus');
+                if (swStatus) {
+                    swStatus.innerText = 'Error: ' + err.message;
+                    swStatus.style.color = '#ff3b30';
+                }
+            });
         });
+    } else {
+        const swStatus = document.getElementById('swStatus');
+        if (swStatus) swStatus.innerText = 'Not Supported';
     }
 }
 
