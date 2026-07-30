@@ -1,10 +1,10 @@
 {
-  "id": "/x9-remote/",
+  "id": "/x9-remote/index.html",
+  "start_url": "/x9-remote/index.html",
+  "scope": "/x9-remote/",
   "name": "X9 Remote",
   "short_name": "X9 Remote",
   "description": "Luxsin X9 remote control.",
-  "start_url": "/x9-remote/",
-  "scope": "/x9-remote/",
   "display_override": ["fullscreen", "minimal-ui"],
   "display": "standalone",
   "background_color": "#000000",
