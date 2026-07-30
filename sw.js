@@ -1,6 +1,6 @@
 const CACHE_NAME = 'device-remote-v67';
 const CORE_ASSETS = [
-  '/',
+  './',
   'index.html',
   'style.css',
   'app.js',
