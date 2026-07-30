@@ -20,6 +20,7 @@ set(RESOURCE_FILES
         app.js
         manifest.json
         sw.js
+        sampleX9.html
         icon-180.png
         icon-192.png
         icon-512.png

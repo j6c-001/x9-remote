@@ -1,6 +1,6 @@
 # Amp (Non-Proxied) API Documentation
 
-This document describes the API for the Luxsin X9  audio pre amplifier (Luxsin/Sinilink based). All communication is performed over HTTP directly to the device IP on port 80.
+This document describes the API for the Luxsin X9 audio pre-amplifier (Luxsin/Sinilink based). All communication is performed over HTTP directly to the device IP on port 80.
 
 ## Overview
 
@@ -25,53 +25,93 @@ To decode the data, translate characters from the **Custom** alphabet to the **S
 
 Returns the current state of the device in encoded JSON format.
 
-**Key Fields in JSON (Decoded)**:
-- `name`: Device name.
-- `device`: Device model/type.
-- `version`: Firmware version.
-- `language`: Current UI language (0: English, 1: ZH-HK, 2: ZH).
-- `volume`: Current volume (0-200).
-- `input`: Current input source index (see "Update Setting" for mapping).
-- `output`: Current output destination index (0: XLR, 1: RCA, 2: Headset).
-- `audioFormat`: Description of current audio (e.g., "44.1kHz/16bit").
-- `vu`: Current VU meter index.
-- `vu_count`: Total number of available VU meter styles.
-- `dsp_enable`: DSP status (0: Enabled, 1: Disabled).
-- `peqEnable`: Parametric EQ status (1: Enabled, 0: Disabled).
-- `audio_enable`: Audio output status (1: Enabled, 0: Disabled).
-- `bt_status`: Bluetooth connection status (0: Disconnected, 1: Playing, 2: Paused).
-- `bt_srcname`: Name of the connected Bluetooth device.
-- `bt_title`: Title of the current track (BT source).
-- `bt_artist`: Artist of the current track (BT source).
-- `soundStep`: Volume increment step (e.g., 0.5).
-- `msgCount`: Current state change counter.
+**JSON Fields (Decoded)**:
+
+| Field | Description |
+| :--- | :--- |
+| `name` | Device name. |
+| `device` | Device model/type (e.g., "Luxsin-X9"). |
+| `version` | Firmware version. |
+| `mac` | Device MAC address. |
+| `language` | Current UI language (0: English, 1: ZH-HK, 2: ZH). |
+| `volume` | Current volume (0-200). |
+| `soundStep` | Volume increment step. |
+| `input` | Current input source index. |
+| `output` | Current output destination index (0: XLR, 1: RCA, 2: Headset). |
+| `audioFormat` | Description of current audio (e.g., "PCM 44.1 KHz"). |
+| `pcm` | PCM mode/status. |
+| `vu` | Current VU meter index. |
+| `vu_count` | Total number of available VU meter styles. |
+| `screenLight` | Screen brightness level (0: Bright, 1: Medium, 2: Dark). |
+| `knob_breathlight` | Knob brightness level (0: Off, 1: Bright, 2: Medium, 3: Dark). |
+| `buttonLight` | Button light status (0: On, 1: Off). |
+| `buttonShort` | Button short press function. |
+| `screenOff` | Auto screen off timer (0: Off, 1: 30s, 2: 1m, 3: 3m, 4: 5m). |
+| `sleep` | Sleep timer (0: Off, 1: 1m, 2: 5m, 3: 10m). |
+| `autoHome` | Automatic return to home screen (0: Off, 1: 20s, 2: 40s, 3: 60s). |
+| `bootSound` | Boot sound status (0: Off, 1: On). |
+| `dsp_enable` | DSP status (1: Enabled/Active, 0: Disabled/Bypassed). |
+| `audio_enable` | Audio output effects status (1: Enabled, 0: Disabled). |
+| `peqEnable` | Parametric EQ status (1: Enabled, 0: Disabled). |
+| `peqSelect` | Selected PEQ preset index. |
+| `balance` | L/R balance (-10 to 10). |
+| `xlr` | XLR port polarity (0: Normal, 1: Reverse). |
+| `dacGain` | DAC gain setting. |
+| `dacArc` | DAC ARC mode (0: ARC, 1: EARC). |
+| `dacImpedance` | DAC impedance setting. |
+| `dacVolumeDirect` | DAC direct volume control. |
+| `analogGain` | Analog gain setting. |
+| `effect_enable` | Effect status (1: Enable, 0: Disable). |
+| `effect_value` | Effect intensity. |
+| `width_enable` | Soundstage width status. |
+| `width_value` | Soundstage width value. |
+| `scene_enable` | Scene mode status. |
+| `scene_value` | Scene mode value. |
+| `crossfeed_enable` | Crossfeed status. |
+| `crossfeed_value` | Crossfeed value. |
+| `subwoofer_enable` | Subwoofer output status. |
+| `subwoofer_value` | Subwoofer crossover frequency. |
+| `subwoofer_rate` | Subwoofer slope. |
+| `subwoofer_gain` | Subwoofer gain. |
+| `loudness_enable` | Loudness compensation status. |
+| `loudness_bass_gain`| Loudness bass boost level. |
+| `loudness_treble_gain`| Loudness treble boost level. |
+| `loudness_threshold_gain`| Loudness activation threshold. |
+| `bt_status` | Bluetooth status (0: Disconnected, 1: Playing, 2: Paused). |
+| `bt_srcname` | Name of the connected Bluetooth device. |
+| `bt_title` | Title of the current track (BT source). |
+| `bt_artist` | Artist of the current track (BT source). |
+| `msgCount` | Current state change counter. |
 
 ### 2. Update Setting
 **Endpoint**: `GET /dev/info.cgi?action=setting&<PARAM>=<VALUE>`
 
 Changes a specific device setting. Multiple parameters can be combined in one request (e.g., `&volume=100&input=4`).
 
-**Parameters**:
+**Common Parameters**:
+
 | Parameter | Value Range | Description |
 | :--- | :--- | :--- |
 | `volume` | 0 - 200 | Set system volume. |
 | `input` | 0 - 6 | Change input source (0: USB, 1: USB-C, 2: Coaxial, 3: Optical, 4: Bluetooth, 5: HDMI-ARC, 6: RCA). |
 | `output` | 0 - 2 | Change output destination (0: XLR, 1: RCA, 2: Headset). |
 | `vu` | 0 - (vu_count-1) | Change VU meter display style. |
-| `dsp_enable` | 0, 1 | Set DSP status (0: Enable, 1: Disable). |
-| `audio_enable`| 0, 1 | Set audio output status (1: Enable, 0: Disable). |
-| `peqEnable` | 0, 1 | Set Parametric EQ status (1: Enable, 0: Disable). |
+| `screenLight` | 0, 1, 2 | Set screen brightness. |
+| `knob_breathlight`| 0, 1, 2, 3 | Set knob brightness. |
+| `buttonLight` | 0, 1 | Set button light (0: On, 1: Off). |
+| `screenOff` | 0 - 4 | Set auto screen off time. |
+| `sleep` | 0 - 3 | Set sleep timer. |
+| `autoHome` | 0 - 3 | Set auto-home timer. |
+| `dsp_enable` | 1, 0 | Set DSP status (1: Enable, 0: Disable/Bypass). |
+| `audio_enable`| 1, 0 | Set audio output effects (1: Enable, 0: Disable). |
+| `peqEnable` | 1, 0 | Set Parametric EQ status (1: Enable, 0: Disable). |
 | `peqSelect` | Index | Select a PEQ preset. |
 | `bt_play` | 1 | Toggle Play/Pause (for Bluetooth sources). |
 | `bt_next` | 1, 0 | Transport control (1: Next, 0: Prev). |
 | `language` | 0, 1, 2 | Set device language (0: English, 1: ZH-HK, 2: ZH). |
-| `lowBass` | -10 to 10 | Set bass level (if supported). |
-| `enterBass` | -10 to 10 | Set mid-range level. |
-| `highBass` | -10 to 10 | Set treble level. |
-| `loudness` | 0, 1 | Enable (1) or disable (0) loudness compensation. |
 | `balance` | -10 to 10 | Set L/R balance. |
-| `tone` | 0, 1 | Enable/disable tone controls. |
-| `threshold` | Value | Set dynamic threshold. |
+| `loudness_enable` | 0, 1 | Enable (1) or disable (0) loudness. |
+| `subwoofer_enable`| 0, 1 | Enable (1) or disable (0) subwoofer output. |
 
 ### 3. Get PEQ Status
 **Endpoint**: `GET /dev/info.cgi?action=syncPeq`

@@ -49,6 +49,7 @@
                 </div>
             </div>
 
+
             <div class="control-group">
                 <div class="button-grid">
                     <button id="btnInput5" onclick="setSetting('input', 5)">
@@ -100,6 +101,7 @@
         <div class="settings-toggle" onclick="toggleSettings()">Advanced Settings</div>
         
         <div id="settingsPanel" class="hidden">
+
             <div class="control-group">
                 <div class="label">Device IP</div>
                 <input type="text" id="deviceIp" placeholder="e.g., 192.168.2.30" value="192.168.2.30">
@@ -146,14 +148,13 @@
         let currentVolume = 0;
         let lastHardwareVol = 0;
         let lastVolSentTime = 0;
-        let volumeBeforeMute = 40;
+        let isMuted = false;
         let isDraggingVol = false;
         let isSettingVolume = false;
         let isRefreshingAmp = false;
         let isRefreshingWiiM = false;
         let currentVuCount = 0;
         let isScrollingCarousel = false;
-        let volumeEaseAbort = null;
         let lastWiiMTrackKey = "";
         let isWiiMDeepDiveDone = false;
         let lastWiiMArtUrl = "";
@@ -193,6 +194,11 @@
                             updateVolDisplay(data.volume);
                         }
                     }
+
+                    if (data.isDacMetuVolume !== undefined) {
+                        isMuted = data.isDacMetuVolume === 1 || data.isDacMetuVolume === true;
+                        updateMuteUI();
+                    }
                     
                     if (data.input !== undefined) {
                         document.querySelectorAll('.button-grid button').forEach(btn => btn.classList.remove('active'));
@@ -207,6 +213,7 @@
                         updateVuCarousel(data.vu);
                     }
                     
+
                     if (data.msgCount !== undefined) {
                         lastMsgCount = parseInt(data.msgCount);
                     }
@@ -377,21 +384,24 @@
             }
         }
 
+        function updateMuteUI() {
+            const btnMute = document.getElementById('btnMute');
+            const muteIcon = document.getElementById('muteIcon');
+            if (isMuted) {
+                btnMute.classList.add('active');
+                if (muteIcon) muteIcon.src = "https://img.icons8.com/ios-filled/50/ffffff/mute.png";
+            } else {
+                btnMute.classList.remove('active');
+                if (muteIcon) muteIcon.src = "https://img.icons8.com/ios-filled/50/ffffff/speaker.png";
+            }
+        }
+
         function updateVolDisplay(val) {
             currentVolume = parseInt(val);
-            if (currentVolume > 0) volumeBeforeMute = currentVolume;
             const dbValue = ((val - 200) / 2).toFixed(1);
             document.getElementById('volumeValue').innerText = dbValue;
             
-            const btnMute = document.getElementById('btnMute');
-            const muteIcon = document.getElementById('muteIcon');
-            if (currentVolume > 0) {
-                btnMute.classList.remove('active');
-                if (muteIcon) muteIcon.src = "https://img.icons8.com/ios-filled/50/ffffff/speaker.png";
-            } else {
-                btnMute.classList.add('active');
-                if (muteIcon) muteIcon.src = "https://img.icons8.com/ios-filled/50/ffffff/mute.png";
-            }
+            updateMuteUI();
 
             const progress = document.getElementById('volProgress');
             const handle = document.getElementById('volHandle');
@@ -416,66 +426,20 @@
         }
 
         async function muteVolume() {
-            if (currentVolume > 0) {
-                volumeBeforeMute = currentVolume;
-                await setSetting('volume', 0);
-            } else {
-                await setSetting('volume', volumeBeforeMute || 40);
-            }
+            await setSetting('isDacMetuVolume', 1);
         }
 
-        async function easeVolume(targetVol) {
-            if (volumeEaseAbort) volumeEaseAbort();
-            
-            const startVol = lastHardwareVol;
-            const target = Math.max(0, Math.min(200, parseInt(targetVol)));
-
-            // For small changes (or no visual change but needs sync), just set it directly
-            if (Math.abs(target - startVol) < 5) {
-                isSettingVolume = true;
-                updateVolDisplay(target);
-                await fetchDevice(`/dev/info.cgi?action=setting&volume=${target}`);
-                lastHardwareVol = target;
-                setTimeout(() => { isSettingVolume = false; }, 1000);
-                setTimeout(() => refreshAmpState(true), 1000);
-                return;
-            }
-
-            let aborted = false;
-            volumeEaseAbort = () => { aborted = true; };
-            isSettingVolume = true;
-
-            const steps = 5;      // Reduced steps to avoid saturating the device
-            const stepDelay = 240; // Increased delay between commands
-            
-            for (let i = 1; i <= steps; i++) {
-                if (aborted || isDraggingVol) break;
-                const progress = i / steps;
-                // S-curve (Cubic Ease In-Out): starts slow, gets fast in middle, slows down at end
-                const easedFactor = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-                const easedVol = Math.round(startVol + (target - startVol) * easedFactor);
-                updateVolDisplay(easedVol);
-                await fetchDevice(`/dev/info.cgi?action=setting&volume=${easedVol}`);
-                lastHardwareVol = easedVol;
-                if (i < steps) await new Promise(r => setTimeout(r, stepDelay));
-            }
-            
-            if (!aborted && !isDraggingVol) {
-                setTimeout(() => { isSettingVolume = false; }, 1000);
-                setTimeout(() => refreshAmpState(true), 1000);
-            }
-            volumeEaseAbort = null;
-        }
 
         async function setSetting(param, value) {
-            if (param === 'volume') {
-                await easeVolume(value);
-            } else {
-                try {
-                    await fetchDevice(`/dev/info.cgi?action=setting&${param}=${value}`);
-                } catch (e) {}
-                setTimeout(() => refreshAmpState(true), 1000);
-            }
+            if (param === 'volume') isSettingVolume = true;
+            try {
+                await fetchDevice(`/dev/info.cgi?action=setting&${param}=${value}`);
+            } catch (e) {}
+            // Force a refresh after a short delay to sync state
+            setTimeout(() => {
+                if (param === 'volume') isSettingVolume = false;
+                refreshAmpState(true);
+            }, 1000);
         }
 
         function initCircularSlider() {
